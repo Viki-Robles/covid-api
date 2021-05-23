@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import "./App.css";
 import { Grid, Typography } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
+import useSWR from "swr";
+import axios from "axios";
 
 const useStyles = makeStyles({
   container: {
@@ -24,31 +26,25 @@ const useStyles = makeStyles({
     color: "#B175FF",
     fontWeight: "bold",
   },
-  title:{
-    color:'white',
-    marginTop:'50px'
-  }
+  title: {
+    color: "white",
+    marginTop: "50px",
+  },
 });
 
 const DATA_URL =
   'https://api.coronavirus.data.gov.uk/v1/data?filters=areaType=nation;areaName=england&structure={"date":"date","areaName":"areaName","areaCode":"areaCode","newCasesByPublishDate":"newCasesByPublishDate","cumCasesByPublishDate":"cumCasesByPublishDate","newDeathsByDeathDate":"newDeathsByDeathDate","cumDeathsByDeathDate":"cumDeathsByDeathDate"}';
+const fetcher = (...args) => axios.get(...args).then((res) => res.data);
 
 function App() {
-  const [loaded, setIsLoaded] = useState(false);
-  const [data, setData] = useState([]);
+  const { data, error } = useSWR(DATA_URL, fetcher);
   const classes = useStyles();
 
-  useEffect(() => {
-    fetch(DATA_URL)
-      .then((response) => response.json())
-      .then((json) => {
-        setData(json.data);
-        setIsLoaded(true);
-      });
-  });
-
-  if (!loaded) {
-    return <div>Loading...</div>;
+  if (error) {
+    return <div>failed to load</div>;
+  }
+  if (!data && !error) {
+    return <div>loading</div>;
   } else {
     return (
       <div className="App">
@@ -58,7 +54,7 @@ function App() {
         <Typography variant="h4" className={classes.title}>
           England Region
         </Typography>
-        {data.map((data, index) => {
+        {Object.keys(data).map((data, index) => {
           if (index === 0) {
             return (
               <Grid
@@ -76,8 +72,10 @@ function App() {
                   {data?.newCasesByPublishDate}
                 </Grid>
                 <Grid item className={classes.item} sm={3}>
-                <Typography className={classes.typography}>Deaths</Typography>
-                  {data?.newDeathsByDeathDate === null ? '0' : data?.newDeathsByDeathDate}
+                  <Typography className={classes.typography}>Deaths</Typography>
+                  {data?.newDeathsByDeathDate === null
+                    ? "0"
+                    : data?.newDeathsByDeathDate}
                 </Grid>
               </Grid>
             );
